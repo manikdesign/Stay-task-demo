@@ -6,19 +6,14 @@ const globalForPrisma = globalThis as unknown as {
 
 function createPrismaClient(): PrismaClient {
   if (process.env.TURSO_DATABASE_URL) {
-    // Production: Turso (libsql)
+    // Production: Turso (libsql) — note: export is PrismaLibSql (not PrismaLibSQL)
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createClient } = require("@libsql/client");
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PrismaLibSQL } = require("@prisma/adapter-libsql");
-    const client = createClient({
+    const { PrismaLibSql } = require("@prisma/adapter-libsql");
+    const adapter = new PrismaLibSql({
       url: process.env.TURSO_DATABASE_URL,
       authToken: process.env.TURSO_AUTH_TOKEN,
     });
-    return new PrismaClient({
-      adapter: new PrismaLibSQL(client),
-      log: ["error"],
-    });
+    return new PrismaClient({ adapter, log: ["error"] });
   }
 
   // Development: local SQLite via better-sqlite3
