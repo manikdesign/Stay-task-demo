@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Member[]
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members Member[]
+  events  Event[]
+  invites Invite[]
+}
+
+model Member {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           String   @default("EDITOR")
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+}
+
+model Invite {
+  id             String   @id @default(cuid())
+  organizationId String
+  email          String
+  role           String   @default("EDITOR")
+  token          String   @unique @default(cuid())
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, email])
+}
+
+model Event {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  venue          String?
+  checkInDate    DateTime
+  checkOutDate   DateTime
+  status         String   @default("ACTIVE")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  hotels       Hotel[]
+  guests       Guest[]
+  groups       Group[]
+}
+
+model Hotel {
+  id        String   @id @default(cuid())
+  eventId   String
+  name      String
+  address   String?
+  phone     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event     Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  roomTypes RoomType[]
+}
+
+model RoomType {
+  id            String  @id @default(cuid())
+  hotelId       String
+  name          String
+  category      String?
+  bedType       String?
+  occupancy     Int     @default(2)
+  maxOccupancy  Int     @default(3)
+  pricePerNight Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  hotel       Hotel        @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  blocks      RoomBlock[]
+  assignments Assignment[]
+}
+
+model RoomBlock {
+  id         String   @id @default(cuid())
+  roomTypeId String
+  date       DateTime
+  quantity   Int
+
+  roomType RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([roomTypeId, date])
+}
+
+model Group {
+  id       String  @id @default(cuid())
+  eventId  String
+  name     String
+  parentId String?
+  color    String?
+
+  event    Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  parent   Group?  @relation("GroupHierarchy", fields: [parentId], references: [id])
+  children Group[] @relation("GroupHierarchy")
+  guests   Guest[]
+}
+
+model Guest {
+  id           String    @id @default(cuid())
+  eventId      String
+  groupId      String?
+  title        String?
+  firstName    String
+  lastName     String?
+  phone        String?
+  email        String?
+  paxCount     Int       @default(1)
+  checkInDate  DateTime?
+  checkOutDate DateTime?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  group      Group?      @relation(fields: [groupId], references: [id])
+  assignment Assignment?
+  documents  Document[]
+}
+
+model Assignment {
+  id                  String   @id @default(cuid())
+  guestId             String   @unique
+  roomTypeId          String
+  roomNumber          String?
+  billingInstructions String?
+  extraBeds           Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  guest    Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  roomType RoomType @relation(fields: [roomTypeId], references: [id])
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  guestId   String
+  name      String
+  fileUrl   String?
+  fileKey   String?
+  type      String?
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guest Guest @relation(fields: [guestId], references: [id], onDelete: Cascade)
+}
