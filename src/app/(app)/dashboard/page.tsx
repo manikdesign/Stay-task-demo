@@ -141,7 +141,7 @@ export default async function DashboardPage() {
             <EmptyDashboard />
           ) : (
             <div className="divide-y divide-border">
-              {events.map((event) => (
+              {events.map((event: (typeof events)[number]) => (
                 <Link
                   key={event.id}
                   href={`/events/${event.id}`}
